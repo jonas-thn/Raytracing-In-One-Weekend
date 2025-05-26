@@ -13,12 +13,28 @@ const double aspect_ratio = 16.0 / 9.0;
 const int width = 400;
 int height = int(width / aspect_ratio);
 
-std::vector<uint8_t> framebuffer(width* height * 4);
+std::vector<uint8_t> framebuffer(width* height * 3);
 
 using Color = vec3;
 
+bool HitSphere(const point3& center, double radius, const Ray& r)
+{
+	vec3 oc = center - r.origin();
+	double a = dot(r.direction(), r.direction());
+	double b = -2.0 * dot(r.direction(), oc);
+	double c = dot(oc, oc) - radius * radius;
+	double discriminant = b * b - 4 * a * c;
+
+	return (discriminant >= 0);
+}
+
 Color RayColor(const Ray& r)
 {
+	if (HitSphere(point3(0, 0, -1), 0.5, r))
+	{
+		return Color(1.0, 0.0, 0.0); 
+	}
+
 	vec3 unit_direction = unit_vector(r.direction());
 	double a = 0.5 * (unit_direction.y() + 1.0);
 	return (1.0 - a) * Color(1.0, 1.0, 1.0) + a * Color(0.5, 0.7, 1.0);
@@ -50,7 +66,7 @@ int main()
 
     double focal_length = 1.0;
     double viewport_height = 2.0;
-    double viewport_width = viewport_height * double(width / height);
+    double viewport_width = viewport_height * aspect_ratio;
 	vec3 camera_center = point3(0, 0, 0);
 
 	vec3 viewport_u = vec3(viewport_width, 0, 0);

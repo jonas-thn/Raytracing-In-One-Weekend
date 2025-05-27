@@ -3,11 +3,16 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 
-#include <iostream>
-#include <vector>
+
 #include <cstdint>
+#include <vector>
 #include "Vec3.h"
 #include "Ray.h"
+
+#include "Utility.h"
+#include "Hittable.h"
+#include "HittableList.h"
+#include "Sphere.h"
 
 const double aspect_ratio = 16.0 / 9.0;
 const int width = 400;
@@ -17,23 +22,31 @@ std::vector<uint8_t> framebuffer(width* height * 3);
 
 using Color = vec3;
 
-bool HitSphere(const point3& center, double radius, const Ray& r)
+double HitSphere(const point3& center, double radius, const Ray& r)
 {
 	vec3 oc = center - r.origin();
-	double a = dot(r.direction(), r.direction());
-	double b = -2.0 * dot(r.direction(), oc);
-	double c = dot(oc, oc) - radius * radius;
-	double discriminant = b * b - 4 * a * c;
+    double a = r.direction().length_squared();
+    double h = dot(r.direction(), oc);
+	double c = oc.length_squared() - radius * radius;
+	double discriminant = h*h - a * c;
 
-	return (discriminant >= 0);
+    if (discriminant < 0)
+    {
+        return -1.0;
+    }
+    else
+    {
+        return (h - std::sqrt(discriminant)) / a;
+    }
 }
 
-Color RayColor(const Ray& r)
+Color RayColor(const Ray& r, const Hittable& world)
 {
-	if (HitSphere(point3(0, 0, -1), 0.5, r))
-	{
-		return Color(1.0, 0.0, 0.0); 
-	}
+    HitRecord rec;
+    if (world.Hit(r, 0, infinity, rec)) 
+    {
+        return 0.5 * (rec.normal + Color(1, 1, 1));
+    }
 
 	vec3 unit_direction = unit_vector(r.direction());
 	double a = 0.5 * (unit_direction.y() + 1.0);
@@ -64,6 +77,12 @@ int main()
 {
     height = (height < 1) ? 1 : height;
 
+    //World
+    HittableList world;
+    world.add(make_shared<Sphere>(point3(0, 0, -1), 0.5));
+    world.add(make_shared<Sphere>(point3(0, -100.5, -1), 100));
+
+    //Camera
     double focal_length = 1.0;
     double viewport_height = 2.0;
     double viewport_width = viewport_height * aspect_ratio;
@@ -88,7 +107,7 @@ int main()
 			vec3 ray_direction = pixel_center - camera_center;
 			Ray r(camera_center, ray_direction);
 
-			Color pixel_color = RayColor(r);
+			Color pixel_color = RayColor(r, world);
 
 			WriteColor(x, y, pixel_color);
         }

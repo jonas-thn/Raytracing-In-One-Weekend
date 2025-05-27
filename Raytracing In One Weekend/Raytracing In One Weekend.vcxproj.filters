@@ -26,5 +26,17 @@
     <ClInclude Include="Ray.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
+    <ClInclude Include="Hittable.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="HittableList.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="Sphere.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="Utility.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

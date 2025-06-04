@@ -15,6 +15,7 @@ class Camera
 public:
     double aspect_ratio = 16.0 / 9.0;
     int width = 400;
+    int samples_per_pixel = 10;
 
     void render(const Hittable& world) 
     {
@@ -26,15 +27,24 @@ public:
 
             for (int x = 0; x < width; ++x)
             {
-                vec3 pixel_center = pixel00_loc + (x * pixel_delta_u) + (y * pixel_delta_v);
-                vec3 ray_direction = pixel_center - center;
-                Ray r(center, ray_direction);
-
-                Color pixel_color = ray_color(r, world);
-
-                WriteColor(x, y, pixel_color);
+                Color pixel_color(0, 0, 0);
+                for (int sample = 0; sample < samples_per_pixel; sample++)
+                {
+                    Ray r = get_ray(x, y);
+                    pixel_color += ray_color(r, world);
+                }
+                WriteColor(x, y, pixel_samples_scale * pixel_color);
             }
         }
+        if (stbi_write_png("output.png", width, height, 3, framebuffer.data(), width * 3))
+        {
+            std::cout << "PNG written successfully.\n";
+        }
+        else
+        {
+            std::cerr << "Failed to write PNG.\n";
+        }
+
     }
 
 private:
@@ -44,6 +54,7 @@ private:
     point3 pixel00_loc;
     vec3 pixel_delta_u;
     vec3 pixel_delta_v;
+    double pixel_samples_scale;
 
     std::vector<uint8_t> framebuffer;
 
@@ -51,6 +62,9 @@ private:
     {
         height = int(width / aspect_ratio);
         height = (height < 1) ? 1 : height;
+
+        pixel_samples_scale = 1.0 / samples_per_pixel;
+
         center = point3(0, 0, 0);
 
         double focal_length = 1.0;
@@ -61,13 +75,31 @@ private:
         vec3 viewport_u = vec3(viewport_width, 0, 0);
         vec3 viewport_v = vec3(0, -viewport_height, 0);
 
-        vec3 pixel_delta_u = viewport_u / width;
-        vec3 pixel_delta_v = viewport_v / height;
+        pixel_delta_u = viewport_u / width;
+        pixel_delta_v = viewport_v / height;
 
         vec3 viewport_upper_left = camera_center - vec3(0, 0, focal_length) - viewport_u / 2 - viewport_v / 2;
-        vec3 pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
+        pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
 
         framebuffer = std::vector<uint8_t>(width * height * 3);
+    }
+
+    Ray get_ray(int i, int j) const 
+    {
+        auto offset = sample_square();
+        auto pixel_sample = pixel00_loc
+            + ((i + offset.x()) * pixel_delta_u)
+            + ((j + offset.y()) * pixel_delta_v);
+
+        auto ray_origin = center;
+        auto ray_direction = pixel_sample - ray_origin;
+
+        return Ray(ray_origin, ray_direction);
+    }
+
+    vec3 sample_square() const 
+    {
+        return vec3(random_double() - 0.5, random_double() - 0.5, 0);
     }
 
     Color ray_color(const Ray& r, const Hittable& world) const 
@@ -86,20 +118,15 @@ private:
     void WriteColor(const int x, const int y, const Color& pixel_color)
     {
         int idx = (y * width + x) * 3;
-        framebuffer[idx + 0] = uint8_t(pixel_color.x() * 255.99);
-        framebuffer[idx + 1] = uint8_t(pixel_color.y() * 255.99);
-        framebuffer[idx + 2] = uint8_t(pixel_color.z() * 255.99);
-    }
 
-    void Render()
-    {
-        if (stbi_write_png("output.png", width, height, 3, framebuffer.data(), width * 3))
-        {
-            std::cout << "PNG written successfully.\n";
-        }
-        else
-        {
-            std::cerr << "Failed to write PNG.\n";
-        }
+        auto r = pixel_color.x();
+        auto g = pixel_color.y();
+        auto b = pixel_color.z();
+
+        static const Interval intensity(0.000, 0.999);
+
+        framebuffer[idx + 0] = uint8_t(255.99 * intensity.clamp(r));
+        framebuffer[idx + 1] = uint8_t(255.99 * intensity.clamp(g));
+        framebuffer[idx + 2] = uint8_t(255.99 * intensity.clamp(b));
     }
 };

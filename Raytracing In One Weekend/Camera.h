@@ -7,6 +7,7 @@
 #include "Vec3.h"
 #include "Ray.h"
 #include <vector>
+#include "Material.h"
 
 using Color = vec3;
 
@@ -16,6 +17,7 @@ public:
     double aspect_ratio = 16.0 / 9.0;
     int width = 400;
     int samples_per_pixel = 10;
+    int max_depth = 10;
 
     void render(const Hittable& world) 
     {
@@ -31,7 +33,7 @@ public:
                 for (int sample = 0; sample < samples_per_pixel; sample++)
                 {
                     Ray r = get_ray(x, y);
-                    pixel_color += ray_color(r, world);
+                    pixel_color += ray_color(r, max_depth, world);
                 }
                 WriteColor(x, y, pixel_samples_scale * pixel_color);
             }
@@ -102,13 +104,23 @@ private:
         return vec3(random_double() - 0.5, random_double() - 0.5, 0);
     }
 
-    Color ray_color(const Ray& r, const Hittable& world) const 
+    Color ray_color(const Ray& r, int depth, const Hittable& world) const 
     {
+        if (depth <= 0)
+            return Color(0, 0, 0);
+
+
         HitRecord rec;
-        if (world.Hit(r, Interval(0, infinity), rec))
+        if (world.Hit(r, Interval(0.001, infinity), rec))
         {
-            vec3 direction = random_on_hemisphere(rec.normal);
-            return 0.5 * ray_color(Ray(rec.p, direction), world);
+            Ray scattered;
+            Color attenuation;
+            if (rec.mat->scatter(r, rec, attenuation, scattered))
+            {
+                return attenuation * ray_color(scattered, depth - 1, world);
+            }
+
+            return Color(0, 0, 0);
         }
 
         vec3 unit_direction = unit_vector(r.direction());

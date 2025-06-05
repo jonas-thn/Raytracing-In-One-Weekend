@@ -35,13 +35,17 @@ int main()
 {
     HittableList world;
 
-    auto R = std::cos(pi / 4);
+    auto material_ground = make_shared<Lambertian>(Color(0.8, 0.8, 0.0));
+    auto material_center = make_shared<Lambertian>(Color(0.1, 0.2, 0.5));
+    auto material_left = make_shared<Dielectric>(1.50);
+    auto material_bubble = make_shared<Dielectric>(1.00 / 1.50);
+    auto material_right = make_shared<Metal>(Color(0.8, 0.6, 0.2), 1.0);
 
-    auto material_left = make_shared<Lambertian>(Color(0, 0, 1));
-    auto material_right = make_shared<Lambertian>(Color(1, 0, 0));
-
-    world.add(make_shared<Sphere>(point3(-R, 0, -1), R, material_left));
-    world.add(make_shared<Sphere>(point3(R, 0, -1), R, material_right));
+    world.add(make_shared<Sphere>(point3(0.0, -100.5, -1.0), 100.0, material_ground));
+    world.add(make_shared<Sphere>(point3(0.0, 0.0, -1.2), 0.5, material_center));
+    world.add(make_shared<Sphere>(point3(-1.0, 0.0, -1.0), 0.5, material_left));
+    world.add(make_shared<Sphere>(point3(-1.0, 0.0, -1.0), 0.4, material_bubble));
+    world.add(make_shared<Sphere>(point3(1.0, 0.0, -1.0), 0.5, material_right));
 
 
     Camera cam;
@@ -49,7 +53,13 @@ int main()
     cam.width = 400;
     cam.samples_per_pixel = 100;
     cam.max_depth = 10;
-    cam.vfov = 90;
+    cam.vfov = 20;
+    cam.lookfrom = point3(-2, 2, 1);
+    cam.lookat = point3(0, 0, -1);
+    cam.vup = vec3(0, 1, 0);
+
+    cam.defocus_angle = 10.0;
+    cam.focus_dist = 3.4;
 
     cam.render(world);
 

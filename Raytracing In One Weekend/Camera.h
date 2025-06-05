@@ -19,6 +19,9 @@ public:
     int samples_per_pixel = 10;
     int max_depth = 10;
 
+    double vfov = 90;
+
+
     void render(const Hittable& world) 
     {
         initialize();
@@ -70,7 +73,9 @@ private:
         center = point3(0, 0, 0);
 
         double focal_length = 1.0;
-        double viewport_height = 2.0;
+        auto theta = degrees_to_radians(vfov);
+        auto h = std::tan(theta / 2);
+        auto viewport_height = 2 * h * focal_length;
         double viewport_width = viewport_height * aspect_ratio;
         vec3 camera_center = point3(0, 0, 0);
 
